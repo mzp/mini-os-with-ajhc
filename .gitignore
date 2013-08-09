@@ -1,0 +1,7 @@
+*.o
+mini-os/arch/x86/libx86_64.a
+mini-os/include/mini-os
+mini-os/include/x86/mini-os
+mini-os/include/xen
+mini-os/mini-os
+mini-os/mini-os.gz
