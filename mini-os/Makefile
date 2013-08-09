@@ -4,7 +4,7 @@
 # Makefile and a arch.mk.
 #
 
-export XEN_ROOT = $(CURDIR)/../..
+export XEN_ROOT = $(CURDIR)/..
 include $(XEN_ROOT)/Config.mk
 OBJ_DIR ?= $(CURDIR)
 
@@ -54,7 +54,7 @@ endif
 
 .PHONY: links
 links:	$(ARCH_LINKS)
-	[ -e include/xen ] || ln -sf ../../../xen/include/public include/xen
+	[ -e include/xen ] || ln -sf $(XEN_ROOT)/xen/include/public include/xen
 	[ -e include/mini-os ] || ln -sf . include/mini-os
 	[ -e include/$(TARGET_ARCH_FAM)/mini-os ] || ln -sf . include/$(TARGET_ARCH_FAM)/mini-os
 
