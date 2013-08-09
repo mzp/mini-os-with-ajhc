@@ -7,3 +7,8 @@ mini-os/mini-os
 mini-os/mini-os.gz
 
 stub/stub
+
+libjhcrts/*Stub.hs
+libjhcrts/*.a
+libjhcrts/rts/
+libjhcrts/jhc_custom/main_code.c
