@@ -14,7 +14,7 @@ SHELL     ?= /bin/sh
 
 # Tools to run on system hosting the build
 HOSTCC      = gcc
-HOSTCFLAGS  = -Wall -Werror -O2 -fomit-frame-pointer
+HOSTCFLAGS  = -Wall -Werror -Wstrict-prototypes -O2 -fomit-frame-pointer
 HOSTCFLAGS += -fno-strict-aliasing
 
 DISTDIR     ?= $(XEN_ROOT)/dist
@@ -146,13 +146,13 @@ $(call cc-option-add,CFLAGS,CC,-Wdeclaration-after-statement)
 $(call cc-option-add,CFLAGS,CC,-Wno-unused-but-set-variable)
 $(call cc-option-add,CFLAGS,CC,-Wno-unused-local-typedefs)
 
-LDFLAGS += $(foreach i, $(EXTRA_LIB), -L$(i)) 
+LDFLAGS += $(foreach i, $(EXTRA_LIB), -L$(i))
 CFLAGS += $(foreach i, $(EXTRA_INCLUDES), -I$(i))
 
 EMBEDDED_EXTRA_CFLAGS := -nopie -fno-stack-protector -fno-stack-protector-all
 EMBEDDED_EXTRA_CFLAGS += -fno-exceptions
 
-# Enable XSM security module.  Enabling XSM requires selection of an 
+# Enable XSM security module.  Enabling XSM requires selection of an
 # XSM security module (FLASK_ENABLE or ACM_SECURITY).
 XSM_ENABLE ?= n
 FLASK_ENABLE ?= n

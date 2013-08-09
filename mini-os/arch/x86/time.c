@@ -41,7 +41,7 @@
 #include <mini-os/lib.h>
 #include <xmalloc.h>
 // Haskell hook
-extern void get_time_values_from_xen();
+extern void get_time_values_from_xen(void);
 extern void timer_handler(evtchn_port_t ev, struct pt_regs *regs, void *ign);
 
 /************************************************************************
@@ -191,28 +191,28 @@ void fini_time(void)
 }
 
 /** Haskell stub */
-struct shadow_time_info* hs_get_shadow() {
+struct shadow_time_info* hs_get_shadow(void) {
   return &shadow;
 }
-uint32_t hs_get_shadow_ts_version(){
+uint32_t hs_get_shadow_ts_version(void){
   return shadow_ts_version;
 }
 void hs_set_shadow_ts_version(uint32_t n){
   shadow_ts_version = n;
 }
-void hs_rmb() {
+void hs_rmb(void) {
   rmb();
 }
-struct shared_info* hs_get_shared_info() {
+struct shared_info* hs_get_shared_info(void) {
   return HYPERVISOR_shared_info;
 }
 
 
-struct vcpu_time_info* hs_get_vcpu_time_info() {
+struct vcpu_time_info* hs_get_vcpu_time_info(void) {
   return &HYPERVISOR_shared_info->vcpu_info[0].time;
 }
 
-struct timespec* hs_get_shadow_ts() {
+struct timespec* hs_get_shadow_ts(void) {
   return &shadow_ts;
 }
 void hs_set_port(evtchn_port_t p) {
