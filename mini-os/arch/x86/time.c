@@ -39,6 +39,10 @@
 #include <mini-os/events.h>
 #include <mini-os/time.h>
 #include <mini-os/lib.h>
+#include <xmalloc.h>
+// Haskell hook
+extern void get_time_values_from_xen();
+extern void timer_handler(evtchn_port_t ev, struct pt_regs *regs, void *ign);
 
 /************************************************************************
  * Time functions
@@ -126,27 +130,6 @@ static unsigned long get_nsec_offset(void)
 }
 
 
-static void get_time_values_from_xen(void)
-{
-	struct vcpu_time_info    *src = &HYPERVISOR_shared_info->vcpu_info[0].time;
-
- 	do {
-		shadow.version = src->version;
-		rmb();
-		shadow.tsc_timestamp     = src->tsc_timestamp;
-		shadow.system_timestamp  = src->system_time;
-		shadow.tsc_to_nsec_mul   = src->tsc_to_system_mul;
-		shadow.tsc_shift         = src->tsc_shift;
-		rmb();
-	}
-	while ((src->version & 1) | (shadow.version ^ src->version));
-
-	shadow.tsc_to_usec_mul = shadow.tsc_to_nsec_mul / 1000;
-}
-
-
-
-
 /* monotonic_clock(): returns # of nanoseconds passed since time_init()
  *		Note: This function is required to return accurate
  *		time even in the absence of multiple timer ticks.
@@ -211,24 +194,8 @@ void block_domain(s_time_t until)
 }
 
 
-/*
- * Just a dummy 
- */
-static void timer_handler(evtchn_port_t ev, struct pt_regs *regs, void *ign)
-{
-    get_time_values_from_xen();
-    update_wallclock();
-}
-
-
 
 static evtchn_port_t port;
-void init_time(void)
-{
-    printk("Initialising timer interface\n");
-    port = bind_virq(VIRQ_TIMER, &timer_handler, NULL);
-    unmask_evtchn(port);
-}
 
 void fini_time(void)
 {
@@ -236,3 +203,34 @@ void fini_time(void)
     HYPERVISOR_set_timer_op(0);
     unbind_evtchn(port);
 }
+
+/** Haskell stub */
+struct shadow_time_info* hs_get_shadow() {
+  return &shadow;
+}
+uint32_t hs_get_shadow_ts_version(){
+  return shadow_ts_version;
+}
+void hs_set_shadow_ts_version(uint32_t n){
+  shadow_ts_version = n;
+}
+void hs_rmb() {
+  rmb();
+}
+struct shared_info* hs_get_shared_info() {
+  return HYPERVISOR_shared_info;
+}
+
+
+struct vcpu_time_info* hs_get_vcpu_time_info() {
+  return &HYPERVISOR_shared_info->vcpu_info[0].time;
+}
+
+struct timespec* hs_get_shadow_ts() {
+  return &shadow_ts;
+}
+void hs_set_port(evtchn_port_t p) {
+  port = p;
+}
+// auto generated
+#include "../../stub/stub/time_shadow_info_c_stub.h"

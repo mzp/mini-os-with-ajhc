@@ -46,6 +46,9 @@
 #include <xen/features.h>
 #include <xen/version.h>
 
+void hs_init (int *argc, char **argv[]);
+void _amain(void);
+
 static struct netfront_dev *net_dev;
 
 uint8_t xen_features[XENFEAT_NR_SUBMAPS * 32];
@@ -509,6 +512,14 @@ void start_kernel(start_info_t *si)
     /* Init memory management. */
     init_mm();
 
+    printk("initialise Haskell runtime\n");
+    {
+      int hsargc = 1;
+      char *hsargv = "t";
+      char **hsargvp = &hsargv;
+      hs_init(&hsargc, &hsargvp);
+      _amain();
+    }
     /* Init time and timers. */
     init_time();
 

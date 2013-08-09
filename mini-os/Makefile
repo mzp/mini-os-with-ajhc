@@ -19,9 +19,9 @@ include minios.mk
 # CFLAGS += -DBLKTEST_WRITE
 
 # Define some default flags for linking.
-LDLIBS := 
-APP_LDLIBS := 
-LDARCHLIB := -L$(OBJ_DIR)/$(TARGET_ARCH_DIR) -l$(ARCH_LIB_NAME)
+LDLIBS :=
+APP_LDLIBS :=
+LDARCHLIB := -L$(OBJ_DIR)/$(TARGET_ARCH_DIR) -l$(ARCH_LIB_NAME) -L../libjhcrts -ljhcrts
 LDFLAGS_FINAL := -T $(TARGET_ARCH_DIR)/minios-$(XEN_TARGET_ARCH).lds
 
 # Prefix for global API names. All other symbols are localised before
