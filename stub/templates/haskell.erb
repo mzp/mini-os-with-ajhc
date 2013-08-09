@@ -1,0 +1,55 @@
+module <%= haskell mod_name %>Stub where
+import Foreign.Ptr
+import Struct
+
+<% map.each do|struct, fields| %>
+data <%= haskell struct %> = <%= haskell struct %> {
+  <% each(fields) do|first, type, name|  %>
+    <% unless first %> , <% end %>
+    <%= snake haskell(struct) %><%= haskell(name) %> :: <%= haskell_type type %>
+  <% end %>
+  }
+<% end %>
+
+<% map.each do|struct, fields| %>
+foreign import ccall "hs_new_<%= struct %>" mk<%= haskell struct %> :: IO (Ptr <%= haskell struct %>)
+
+<% fields.each do|type, name| %>
+foreign import ccall "hs_set_<%= struct %>_<%= name %>" set<%= haskell struct %><%= haskell name %> :: Ptr <%= haskell struct %> -> <%= haskell_type type %> -> IO ()
+
+  <% unless haskell_type(type)[-1] == '_' %>
+foreign import ccall "hs_get_<%= struct %>_<%= name %>" get<%= haskell struct %><%= haskell name %> :: Ptr <%= haskell struct %> -> IO <%= haskell_type type %>
+  <% end %>
+<% end %>
+<% end %>
+
+-- type class
+<% map.each do|struct, fields| %>
+instance Struct <%= haskell struct %> where
+  fromC ptr = do {
+    <% fields.each do|ty, name| %>
+      <% unless haskell_type(ty)[-1] == '_' %>
+        <%= snake haskell(name) %> <- get<%= haskell struct %><%= haskell name %> ptr;
+      <% end %>
+    <% end %>
+    return <%= haskell(struct) %>
+    <% unless fields.empty? %>
+      {
+    <% each(fields) do|first, ty , name| %>
+      <% unless haskell_type(ty)[-1] == '_' %>
+        <% unless first %> , <% end %>
+        <%= snake haskell(struct) %><%= haskell(name) %> = <%= snake haskell(name) %>
+      <% end %>
+    <% end %>
+    }
+    <% end %>
+  }
+
+  toC x = do {
+    ptr <- mk<%= haskell struct %>;
+    <% fields.each do|_, name| %>
+      set<%= haskell struct %><%= haskell name %> ptr (<%= snake haskell(struct) %><%= haskell name %> x);
+    <% end %>
+    return ptr
+  }
+<% end %>

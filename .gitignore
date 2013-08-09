@@ -5,3 +5,5 @@ mini-os/include/x86/mini-os
 mini-os/include/xen
 mini-os/mini-os
 mini-os/mini-os.gz
+
+stub/stub

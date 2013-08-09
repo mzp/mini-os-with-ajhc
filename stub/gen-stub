@@ -1,0 +1,110 @@
+#!/usr/bin/env ruby
+require 'pp'
+require 'fileutils'
+require 'erb'
+
+TypeMap =  {
+  'uint64_t' => 'Word64',
+  'uint32_t' => 'Word32',
+  'int' => 'Int32',
+  'int8_t' => 'Int8',
+  'time_t' => 'Int64',
+  'long' => 'Int32',
+  'char*' => 'BitsPtr_',
+  'domid_t' => 'Word16',
+  'grant_ref_t' => 'Word32',
+  'evtchn_port_t' => 'Word32'
+}
+
+def each(xs, &f)
+  first = true
+  xs.each do|x|
+    f.call(first, *x)
+    first = false
+  end
+end
+
+def haskell(str)
+  str.split('_').map(&:capitalize).join('')
+end
+
+def snake(str)
+  str[0].downcase + str[1..-1]
+end
+
+def c_type(ty)
+  case ty.first
+  when :prim
+    ty[1]
+  when :struct
+    "struct #{ty[1]}*"
+  end
+end
+
+def haskell_type(ty)
+  case ty.first
+  when :prim
+    TypeMap[ty[1]]
+  when :struct
+    "(Ptr #{haskell ty[1]})"
+  end
+end
+
+def read(content)
+  map = {}
+  current = nil
+  content.each do|line|
+    case line
+    when /struct (\w+) {/
+      current = $1
+      map[current] = []
+    when /\s*struct\s+(\w+)\*\s+(\w+)/
+      map[current] << [[:struct,$1], $2]
+    when /\s*([\w*]+)\s+(\w+)/
+      map[current] << [[:prim, $1], $2]
+    end
+  end
+  map
+end
+
+def c_stub(io, map)
+  map.each do|struct, fields|
+    io.puts <<-END
+struct #{struct}* hs_new_#{struct}() {
+  struct #{struct}* p = (struct #{struct}*)malloc(sizeof(struct #{struct}));
+  memset(p, 0, sizeof(struct #{struct}));
+  return p;
+}
+
+    END
+
+    fields.each do|type, name|
+      io.puts <<-END
+#{c_type type} hs_get_#{struct}_#{name}(struct #{struct}* p) {
+  return p->#{name};
+}
+
+void hs_set_#{struct}_#{name}(struct #{struct}* p, #{c_type type} value) {
+  p->#{name} = value;
+}
+
+      END
+    end
+  end
+end
+
+def haskell_stub(io, mod_name, map)
+  io.puts ERB.new(File.read(File.dirname(__FILE__) + "/templates/haskell.erb")).result(binding)
+end
+
+ARGV.each do|path|
+  map = read File.open(path)
+  mod_name = File.basename(path, ".h")
+  FileUtils.mkdir_p 'stub'
+  File.open('stub/' + mod_name  + "_c_stub.h", "w+") {|io|
+    c_stub(io, map)
+  }
+  File.open('stub/' + haskell(mod_name)  + "Stub.hs", "w+") {|io|
+    haskell_stub(io, mod_name, map)
+  }
+end
