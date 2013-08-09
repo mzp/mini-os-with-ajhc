@@ -1,0 +1,52 @@
+# Snatch Mini-OS/Xen using [Ajhc](http://ajhc.metasepi.org/)
+
+Let's try to rewrite Mini-OS/Xen using Haskell and [Ajhc](http://ajhc.metasepi.org/) compiler.
+
+Note: Mini-OS is small OS in Xen source tree.
+
+## Prerequires
+
+ * ajhc
+
+## Configure
+
+    # link to include directory
+    $ mini-os
+    $ make links
+    $ cd..
+
+## Build
+
+### generate stub files
+
+    $ cd stub
+    $ ./gen-stub idl/*.h
+    $ cd ..
+
+### build haskell code
+
+
+    # build haskell code
+    $ cd libjhcrts
+    $ make
+    $ cd ..
+
+### build mini-os
+
+    # build mini-os
+    $ cd mini-os
+    $ make
+
+## Run
+
+Write `mini-os.cfg` like this:
+
+    kernel = "mini-os"
+    memory = 128
+    name = "MINIOS"
+    on_crash = "destroy"
+
+And run:
+
+    $ xm create -c mini-os.cfg
+
