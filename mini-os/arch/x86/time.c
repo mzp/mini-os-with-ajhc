@@ -151,20 +151,6 @@ uint64_t monotonic_clock(void)
 	return time;
 }
 
-static void update_wallclock(void)
-{
-	shared_info_t *s = HYPERVISOR_shared_info;
-
-	do {
-		shadow_ts_version = s->wc_version;
-		rmb();
-		shadow_ts.tv_sec  = s->wc_sec;
-		shadow_ts.tv_nsec = s->wc_nsec;
-		rmb();
-	}
-	while ((s->wc_version & 1) | (shadow_ts_version ^ s->wc_version));
-}
-
 
 int gettimeofday(struct timeval *tv, void *tz)
 {
