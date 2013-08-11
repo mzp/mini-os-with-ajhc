@@ -148,18 +148,14 @@ void xprintk(const char *fmt, ...)
     va_list       args;
     va_start(args, fmt);
     print(1, fmt, args);
-    va_end(args);        
-}
-void init_console(void)
-{   
-    printk("Initialising console ... ");
-    xencons_ring_init();    
-    console_initialised = 1;
-    /* This is also required to notify the daemon */
-    printk("done.\n");
+    va_end(args);
 }
 
 void fini_console(struct consfront_dev *dev)
 {
     if (dev) free_consfront(dev);
+}
+
+void hs_set_console_initialised(int n) {
+    console_initialised = n;
 }
