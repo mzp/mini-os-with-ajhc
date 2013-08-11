@@ -3,6 +3,7 @@ FILE* stderr = 0;
 FILE* stdout = 0;
 void abort() {
   printk("abort\n");
+  stack_walk();
   for (;;);
 }
 
