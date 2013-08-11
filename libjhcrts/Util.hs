@@ -1,4 +1,6 @@
-module Util(printk, printk2) where
+module Util(printk) where
 import Foreign.C.String
-foreign import ccall "console.h printk" printk :: BitsPtr_ -> IO ()
-foreign import ccall "console.h printk" printk2 :: CString -> IO ()
+foreign import ccall "console.h printk" rawPrintk :: CString -> IO ()
+
+printk :: String -> IO ()
+printk  = flip withCString rawPrintk

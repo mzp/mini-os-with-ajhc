@@ -79,7 +79,7 @@ getTimeValuesFromXen = do info <- getVCPUTimeInfo
 timerHandler _ _ _ = do getTimeValuesFromXen
                         updateWallclock
 
-initTime = do printk "Initialising timer interface\n"#
+initTime = do printk "Initialising timer interface\n"
               let p = ptrTimerHandler
               port <- bindVirq virqTimer p nullPtr
               setPort port
