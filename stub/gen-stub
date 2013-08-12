@@ -10,7 +10,7 @@ TypeMap =  {
   'int8_t' => 'Int8',
   'time_t' => 'Int64',
   'long' => 'Int32',
-  'char*' => 'BitsPtr_',
+  'char*' => 'CString',
   'domid_t' => 'Word16',
   'grant_ref_t' => 'Word32',
   'evtchn_port_t' => 'Word32'
@@ -70,7 +70,7 @@ end
 def c_stub(io, map)
   map.each do|struct, fields|
     io.puts <<-END
-struct #{struct}* hs_new_#{struct}() {
+struct #{struct}* hs_new_#{struct}(void) {
   struct #{struct}* p = (struct #{struct}*)malloc(sizeof(struct #{struct}));
   memset(p, 0, sizeof(struct #{struct}));
   return p;
