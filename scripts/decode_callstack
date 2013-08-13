@@ -1,0 +1,27 @@
+#!/bin/usr/env ruby
+
+syms, cb = *ARGV
+
+addrs = []
+open(syms).each do|line|
+  addr, _, name = line.split ' '
+  addrs << [ addr.to_i(16), name ]
+end
+
+pairs = addrs.zip(addrs[1..-1])
+
+traces = []
+open(cb).each do|line|
+  if line =~ /base is \S+ caller is 0x(.*)/
+    traces << $1.to_i(16)
+  end
+end
+
+traces.each do|trace|
+  pairs.each do|x,y|
+    if x[0] < trace && trace < y[0] then
+      puts x[1]
+      print '--> '
+    end
+  end
+end
