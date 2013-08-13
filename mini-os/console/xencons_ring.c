@@ -351,9 +351,6 @@ void* hs_mfn_to_virt(xen_pfn_t x) {
 void hs_notify_daemon(struct consfront_dev *dev) {
   notify_daemon(dev);
 }
-void* hs_handle_input(void) {
-  return &handle_input;
-}
 void hs_mb(void) {
   mb();
 }
