@@ -1,5 +1,5 @@
 HASKELL_SRC = Main.hs Time.hs Util.hs Xen.hs Struct.hs Console.hs XenconsRing.hs
-STUB = TimeShadowInfoStub.hs
+STUB = TimeShadowInfoStub.hs XenconsoleStub.hs
 
 all: libjhcrts.a
 
@@ -25,7 +25,7 @@ CFLAGS = -fno-builtin -g -DGNT_DEBUG -DGNTMAP_DEBUG -D__INSIDE_MINIOS__ -m64 -mn
 CFLAGS += -I$(JHCRTS_SRC) -std=gnu99 -D_GNU_SOURCE
 CFLAGS += -falign-functions=4 -ffast-math -fno-strict-aliasing
 CFLAGS += -DNDEBUG -D_JHC_GC=_JHC_GC_JGC -D_JHC_STANDALONE=0
-CFLAGS += -D_JHC_JGC_STACKGROW=128 -D_JHC_JGC_LIMITED_NUM_MEGABLOCK=2
+CFLAGS += -D_JHC_JGC_STACKGROW=128 -D_JHC_JGC_LIMITED_NUM_MEGABLOCK=10
 CFLAGS += -D_JHC_JGC_BLOCK_SHIFT=9 -D_JHC_JGC_MEGABLOCK_SHIFT=14
 CFLAGS += -D_JHC_JGC_GC_STACK_SHIFT=8 -D_JHC_JGC_LIMITED_NUM_GC_STACK=1
 CFLAGS += -D_JHC_JGC_NAIVEGC

@@ -14,6 +14,12 @@
 
 DECLARE_WAIT_QUEUE_HEAD(console_queue);
 
+uint64_t hs_xencons_ring_init(void);
+struct consfront_dev *xencons_ring_init(void) {
+  // cast type
+  return (void*)hs_xencons_ring_init();
+}
+
 static inline void notify_daemon(struct consfront_dev *dev)
 {
     /* Use evtchn: this is called early, before irq is set up. */
@@ -146,41 +152,6 @@ int xencons_ring_recv(struct consfront_dev *dev, char *data, unsigned len)
         return filled;
 }
 #endif
-
-struct consfront_dev *xencons_ring_init(void)
-{
-	int err;
-	struct consfront_dev *dev;
-
-	if (!start_info.console.domU.evtchn)
-		return 0;
-
-	dev = malloc(sizeof(struct consfront_dev));
-	memset(dev, 0, sizeof(struct consfront_dev));
-	dev->nodename = "device/console";
-	dev->dom = 0;
-	dev->backend = 0;
-	dev->ring_ref = 0;
-
-#ifdef HAVE_LIBC
-	dev->fd = -1;
-#endif
-	dev->evtchn = start_info.console.domU.evtchn;
-	dev->ring = (struct xencons_interface *) mfn_to_virt(start_info.console.domU.mfn);
-
-	err = bind_evtchn(dev->evtchn, handle_input, dev);
-	if (err <= 0) {
-		printk("XEN console request chn bind failed %i\n", err);
-                free(dev);
-		return NULL;
-	}
-        unmask_evtchn(dev->evtchn);
-
-	/* In case we have in-flight data after save/restore... */
-	notify_daemon(dev);
-
-	return dev;
-}
 
 void free_consfront(struct consfront_dev *dev)
 {
@@ -365,3 +336,25 @@ void xencons_resume(void)
 	(void)xencons_ring_init();
 }
 
+// ------------------------------
+// Haskell Interface
+// ------------------------------
+uint32_t hs_get_evtch(void) {
+  return start_info.console.domU.evtchn;
+}
+xen_pfn_t hs_get_mfn(void) {
+  return start_info.console.domU.mfn;
+}
+void* hs_mfn_to_virt(xen_pfn_t x) {
+  return mfn_to_virt(x);
+}
+void hs_notify_daemon(struct consfront_dev *dev) {
+  notify_daemon(dev);
+}
+void* hs_handle_input(void) {
+  return &handle_input;
+}
+void hs_mb(void) {
+  mb();
+}
+#include "../../stub/stub/xenconsole_c_stub.h"
