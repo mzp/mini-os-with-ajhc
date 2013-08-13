@@ -11,10 +11,12 @@ TypeMap =  {
   'time_t' => 'Int64',
   'long' => 'Int32',
   'char*' => 'CString',
+  'char[]' => 'CString',
   'domid_t' => 'Word16',
   'grant_ref_t' => 'Word32',
   'evtchn_port_t' => 'Word32'
 }
+Keywords = %w(in)
 
 def each(xs, &f)
   first = true
@@ -25,7 +27,12 @@ def each(xs, &f)
 end
 
 def haskell(str)
-  str.split('_').map(&:capitalize).join('')
+  name = str.split('_').map(&:capitalize).join('')
+  if Keywords.include? name.downcase then
+    "#{name}_"
+  else
+    name
+  end
 end
 
 def snake(str)
@@ -35,7 +42,7 @@ end
 def c_type(ty)
   case ty.first
   when :prim
-    ty[1]
+    ty[1].gsub(/\[\]$/,'*')
   when :struct
     "struct #{ty[1]}*"
   end
@@ -60,7 +67,7 @@ def read(content)
       map[current] = []
     when /\s*struct\s+(\w+)\*\s+(\w+)/
       map[current] << [[:struct,$1], $2]
-    when /\s*([\w*]+)\s+(\w+)/
+    when /\s*([\w*\[\]]+)\s+(\w+)/
       map[current] << [[:prim, $1], $2]
     end
   end
@@ -83,12 +90,15 @@ struct #{struct}* hs_new_#{struct}(void) {
 #{c_type type} hs_get_#{struct}_#{name}(struct #{struct}* p) {
   return p->#{name};
 }
+      END
 
+      if type[1] !~ /\[\]$/ then
+        io.puts <<-END
 void hs_set_#{struct}_#{name}(struct #{struct}* p, #{c_type type} value) {
   p->#{name} = value;
 }
-
-      END
+        END
+      end
     end
   end
 end
