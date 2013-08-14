@@ -4,42 +4,47 @@ Let's try to rewrite Mini-OS/Xen using Haskell and [Ajhc](http://ajhc.metasepi.o
 
 Note: Mini-OS is small OS in Xen source tree.
 
+## About Metasepi project
+
+This is a part of [Metasepi project](http://metasepi.org). Metasepi project is aim to rewrite
+a practical OS with some strong type-safe functional laungage.
+
+This project uses a snach developing method. This means "We rewrite one C funciton with Haskell in a one step instead of
+rewring whole OS code".
+
+This enables us early time dog fooding.
+
 ## Prerequires
 
- * ajhc
+ * ajhc 0.8.0.8
+ * Xen 4.1.5
+ * Ruby 1.9.x
 
 ## Configure
 
-    # link to include directory
-    $ mini-os
-    $ make links
-    $ cd..
+Link to include directory:
+
+    $ make -C mini-os links
 
 ## Build
 
 ### generate stub files
 
-    $ cd stub
-    $ ./gen-stub idl/*.h
-    $ cd ..
+   $ cd stub
+   $ ./gen-stub idl/*.h
+   $ cd ..
 
 ### build haskell code
 
-
-    # build haskell code
-    $ cd libjhcrts
-    $ make
-    $ cd ..
+    $ make -C libjhcrts
 
 ### build mini-os
 
-    # build mini-os
-    $ cd mini-os
-    $ make
+    $ make -C mini-os
 
 ## Run
 
-Write `mini-os.cfg` like this:
+Write `mini-os/mini-os.cfg` like this:
 
     kernel = "mini-os"
     memory = 128
@@ -48,5 +53,5 @@ Write `mini-os.cfg` like this:
 
 And run:
 
+    $ cd mini-os
     $ xm create -c mini-os.cfg
-
