@@ -1,14 +1,14 @@
-/* 
+/*
  ****************************************************************************
  * (C) 2006 - Cambridge University
  ****************************************************************************
  *
  *        File: gnttab.c
- *      Author: Steven Smith (sos22@cam.ac.uk) 
+ *      Author: Steven Smith (sos22@cam.ac.uk)
  *     Changes: Grzegorz Milos (gm281@cam.ac.uk)
- *              
+ *
  *        Date: July 2006
- * 
+ *
  * Environment: Xen Minimal OS
  * Description: Simple grant tables implementation. About as stupid as it's
  *  possible to be and still work.
@@ -174,28 +174,6 @@ gnttabop_error(int16_t status)
 }
 
 void
-init_gnttab(void)
-{
-    struct gnttab_setup_table setup;
-    unsigned long frames[NR_GRANT_FRAMES];
-    int i;
-
-#ifdef GNT_DEBUG
-    memset(inuse, 1, sizeof(inuse));
-#endif
-    for (i = NR_RESERVED_ENTRIES; i < NR_GRANT_ENTRIES; i++)
-        put_free_entry(i);
-
-    setup.dom = DOMID_SELF;
-    setup.nr_frames = NR_GRANT_FRAMES;
-    set_xen_guest_handle(setup.frame_list, frames);
-
-    HYPERVISOR_grant_table_op(GNTTABOP_setup_table, &setup, 1);
-    gnttab_table = map_frames(frames, NR_GRANT_FRAMES);
-    printk("gnttab_table mapped at %p.\n", gnttab_table);
-}
-
-void
 fini_gnttab(void)
 {
     struct gnttab_setup_table setup;
@@ -205,3 +183,16 @@ fini_gnttab(void)
 
     HYPERVISOR_grant_table_op(GNTTABOP_setup_table, &setup, 1);
 }
+
+// -------------
+void hs_put_free_entry(grant_ref_t ref) {
+  put_free_entry(ref);
+}
+void hs_set_xen_guest_handle(struct gnttab_setup_table* ptr, unsigned long* frames) {
+  set_xen_guest_handle(ptr->frame_list, frames);
+}
+void hs_set_gnttab_table(grant_entry_t* p) {
+  gnttab_table = p;
+}
+#include <xmalloc.h>
+#include "../stub/stub/gnttab_c_stub.h"

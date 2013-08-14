@@ -4,8 +4,12 @@ require 'fileutils'
 require 'erb'
 
 TypeMap =  {
-  'uint64_t' => 'Word64',
+  'uint8_t' => 'Word8',
+  'uint16_t' => 'Word16',
   'uint32_t' => 'Word32',
+  'uint64_t' => 'Word64',
+  'uint64_t*' => '(Ptr Word64)',
+  'int16_t' => 'Int16',
   'int' => 'Int32',
   'int8_t' => 'Int8',
   'time_t' => 'Int64',
@@ -14,7 +18,8 @@ TypeMap =  {
   'char[]' => 'CString',
   'domid_t' => 'Word16',
   'grant_ref_t' => 'Word32',
-  'evtchn_port_t' => 'Word32'
+  'evtchn_port_t' => 'Word32',
+  '__guest_handle_ulong' => '(Ptr Word8)'
 }
 Keywords = %w(in)
 
