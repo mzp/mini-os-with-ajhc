@@ -53,7 +53,7 @@
 /* If console not initialised the printk will be sent to xen serial line 
    NOTE: you need to enable verbose in xen/Rules.mk for it to work. */
 static int console_initialised = 0;
-
+void* xencons_ring_init2(void);
 
 #ifndef HAVE_LIBC
 void xencons_rx(char *buf, unsigned len, struct pt_regs *regs)
@@ -158,4 +158,13 @@ void fini_console(struct consfront_dev *dev)
 
 void hs_set_console_initialised(int n) {
     console_initialised = n;
+}
+
+void init_console2(void) {
+
+  printk("Initialising console ... ");
+  xencons_ring_init2();
+  console_initialised = 1;
+  /* This is also required to notify the daemon */
+  printk("done.\n");
 }
