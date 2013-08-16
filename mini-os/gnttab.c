@@ -37,20 +37,7 @@ static char inuse[NR_GRANT_ENTRIES];
 #endif
 static __DECLARE_SEMAPHORE_GENERIC(gnttab_sem, 0);
 
-static void
-put_free_entry(grant_ref_t ref)
-{
-    unsigned long flags;
-    local_irq_save(flags);
-#ifdef GNT_DEBUG
-    BUG_ON(!inuse[ref]);
-    inuse[ref] = 0;
-#endif
-    gnttab_list[ref] = gnttab_list[0];
-    gnttab_list[0]  = ref;
-    local_irq_restore(flags);
-    up(&gnttab_sem);
-}
+void put_free_entry(grant_ref_t ref);
 
 static grant_ref_t
 get_free_entry(void)
@@ -185,14 +172,28 @@ fini_gnttab(void)
 }
 
 // -------------
-void hs_put_free_entry(grant_ref_t ref) {
-  put_free_entry(ref);
-}
 void hs_set_xen_guest_handle(struct gnttab_setup_table* ptr, unsigned long* frames) {
   set_xen_guest_handle(ptr->frame_list, frames);
 }
 void hs_set_gnttab_table(grant_entry_t* p) {
   gnttab_table = p;
+}
+
+unsigned long hs_local_irq_save(unsigned long flags) {
+  local_irq_save(flags);
+  return flags;
+}
+
+unsigned long hs_local_irq_restore(unsigned long flags) {
+  local_irq_restore(flags);
+  return flags;
+}
+
+grant_ref_t* hs_get_gnttab_list(void) {
+  return gnttab_list;
+}
+void* hs_get_gnttab_sem(void) {
+  return &gnttab_sem;
 }
 #include <xmalloc.h>
 #include "../stub/stub/gnttab_c_stub.h"
