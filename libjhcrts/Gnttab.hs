@@ -12,8 +12,6 @@ type GrantRef= Int32
 foreign import ccall "hs_get_gnttab_list" getGnttabList :: IO (Ptr GrantRef)
 foreign import ccall "hs_set_xen_guest_handle" setXenGuestHandle :: Ptr GnttabSetupTable -> Ptr Word32 -> IO ()
 foreign import ccall "hs_set_gnttab_table" setGnttabTable :: Ptr a -> IO ()
-foreign import ccall "hs_local_irq_save" localIrqSave :: Word32 -> IO Word32
-foreign import ccall "hs_local_irq_restore" localIrqRestore :: Word32 -> IO Word32
 foreign import ccall "hs_get_gnttab_sem" getGnttabSem :: IO (Ptr Word8)
 foreign export ccall "init_gnttab" initGnttab :: IO ()
 foreign export ccall "put_free_entry" putFreeEntry :: GrantRef -> IO ()
@@ -29,8 +27,7 @@ initGnttab = do (frames :: Ptr Word32) <- mallocArray $ fromInteger $ toInteger 
                 let setup = GnttabSetupTable {
                   gnttabSetupTableDom = domidSelf,
                   gnttabSetupTableNrFrames = nrGrantFrames,
-                  gnttabSetupTableStatus = 0,
-                  gnttabSetupTableFrameList =  nullPtr
+                  gnttabSetupTableStatus = 0
                 }
                 -- todo: pass a pointer
                 ptr <- toC setup

@@ -71,98 +71,15 @@ void inline print_runqueue(void)
     }
     printk("\n");
 }
-
-void schedule(void)
-{
-    struct thread *prev, *next, *thread;
-    struct minios_list_head *iterator, *next_iterator;
-    unsigned long flags;
-
-    prev = current;
-    local_irq_save(flags); 
-
-    if (in_callback) {
-        printk("Must not call schedule() from a callback\n");
-        BUG();
-    }
-    if (flags) {
-        printk("Must not call schedule() with IRQs disabled\n");
-        BUG();
-    }
-
-    do {
-        /* Examine all threads.
-           Find a runnable thread, but also wake up expired ones and find the
-           time when the next timeout expires, else use 10 seconds. */
-        s_time_t now = NOW();
-        s_time_t min_wakeup_time = now + SECONDS(10);
-        next = NULL;   
-        minios_list_for_each_safe(iterator, next_iterator, &idle_thread->thread_list)
-        {
-            thread = minios_list_entry(iterator, struct thread, thread_list);
-            if (!is_runnable(thread) && thread->wakeup_time != 0LL)
-            {
-                if (thread->wakeup_time <= now)
-                    wake(thread);
-                else if (thread->wakeup_time < min_wakeup_time)
-                    min_wakeup_time = thread->wakeup_time;
-            }
-            if(is_runnable(thread)) 
-            {
-                next = thread;
-                /* Put this thread on the end of the list */
-                minios_list_del(&thread->thread_list);
-                minios_list_add_tail(&thread->thread_list, &idle_thread->thread_list);
-                break;
-            }
-        }
-        if (next)
-            break;
-        /* block until the next timeout expires, or for 10 secs, whichever comes first */
-        block_domain(min_wakeup_time);
-        /* handle pending events if any */
-        force_evtchn_callback();
-    } while(1);
-    local_irq_restore(flags);
-    /* Interrupting the switch is equivalent to having the next thread
-       inturrupted at the return instruction. And therefore at safe point. */
-    if(prev != next) switch_threads(prev, next);
-
-    minios_list_for_each_safe(iterator, next_iterator, &exited_threads)
-    {
-        thread = minios_list_entry(iterator, struct thread, thread_list);
-        if(thread != prev)
-        {
-            minios_list_del(&thread->thread_list);
-            free_pages(thread->stack, STACK_SIZE_PAGE_ORDER);
-            xfree(thread);
-        }
-    }
+void hs_dump(struct thread* p) {
+  printk("dump Thread \"%s\", runnable=%d prev=%p next=%p\n", p->name, is_runnable(p), p->thread_list.prev, p->thread_list.next);
 }
+void schedule(void);
 
+struct thread* hs_create_thread(char *name, void (*function)(void *), void *data);
 struct thread* create_thread(char *name, void (*function)(void *), void *data)
 {
-    struct thread *thread;
-    unsigned long flags;
-    /* Call architecture specific setup. */
-    thread = arch_create_thread(name, function, data);
-    /* Not runable, not exited, not sleeping */
-    thread->flags = 0;
-    thread->wakeup_time = 0LL;
-#ifdef HAVE_LIBC
-    _REENT_INIT_PTR((&thread->reent))
-#endif
-    set_runnable(thread);
-    local_irq_save(flags);
-    if(idle_thread != NULL) {
-        minios_list_add_tail(&thread->thread_list, &idle_thread->thread_list); 
-    } else if(function != idle_thread_fn)
-    {
-        printk("BUG: Not allowed to create thread before initialising scheduler.\n");
-        BUG();
-    }
-    local_irq_restore(flags);
-    return thread;
+  return hs_create_thread(name, function, data);
 }
 
 #ifdef HAVE_LIBC
@@ -221,10 +138,9 @@ void exit_thread(void)
     }
 }
 
-void block(struct thread *thread)
-{
-    thread->wakeup_time = 0LL;
-    clear_runnable(thread);
+void hs_block(struct thread *thread);
+void block(struct thread *thread) {
+  hs_block(thread);
 }
 
 void msleep(uint32_t millisecs)
@@ -286,16 +202,51 @@ void th_f2(void *data)
     }
 }
 
+// ------
+void hs_set_idle_thread(struct thread* p) {
+  idle_thread = p;
+}
+void hs_minios_init_list_head(struct minios_list_head* p) {
+  MINIOS_INIT_LIST_HEAD(p);
+}
+struct minios_list_head* hs_list_next(struct minios_list_head* p) {
+  return p->next;
+}
+struct minios_list_head* hs_get_thread_list(struct thread* p) {
+  return &p->thread_list;
+}
+struct thread* hs_get_idle_thread(void) {
 
-
-void init_sched(void)
-{
-    printk("Initialising scheduler\n");
-
-#ifdef HAVE_LIBC
-    _REENT_INIT_PTR((&callback_reent))
-#endif
-    idle_thread = create_thread("Idle", idle_thread_fn, NULL);
-    MINIOS_INIT_LIST_HEAD(&idle_thread->thread_list);
+  return idle_thread;
+}
+void hs_set_runnable(struct thread* p) {
+  set_runnable(p);
+}
+void hs_set_threads_started(int n) {
+  threads_started = n;
+}
+struct thread* hs_get_entry(struct minios_list_head* p) {
+  return minios_list_entry(p, struct thread, thread_list);
 }
 
+void abort(void);
+void hs_switch_threads(struct thread* prev, struct thread* next) {
+  switch_threads(prev, next);
+}
+struct minios_list_head* hs_exited_threads(void) {
+  return &exited_threads;
+}
+void hs_bug(void) {
+  abort();
+  BUG();
+}
+
+int hs_get_in_callback(void) {
+  return in_callback;
+}
+
+s_time_t hs_now(void) {
+  printk("RAW_NOW:[[%ld]]\n", (s_time_t)NOW());
+  return NOW();
+}
+#include "../stub/stub/sched_c_stub.h"

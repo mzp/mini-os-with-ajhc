@@ -3,6 +3,7 @@ import Data.Word
 import Foreign.Ptr
 
 foreign import ccall "hypervisor.h unmask_evtchn" unmaskEvtch :: Word32 -> IO ()
+foreign import ccall "hypervisor.h force_evtchn_callback" forceEvtchnCallback :: IO ()
 
 type EvtchnPort = Word32
 foreign import ccall "events.h bind_virq" bindVirq :: EvtchnPort -> FunPtr a -> Ptr Word8 -> IO EvtchnPort
@@ -20,4 +21,17 @@ foreign import ccall "mini-os/gnttab.h HYPERVISOR_grant_table_op" hypervisorGran
 foreign import ccall "mini-os/gnttab.h map_frames" mapFrames :: Ptr Word64 -> Word64 -> IO (Ptr a)
 foreign import capi  "mini-os/semaphore.h up" up :: Ptr a -> IO ()
 
+type Time = Int64
+foreign import capi  "mini-os/time.h NOW" getNow :: IO Time
+foreign import capi  "mini-os/time.h SECONDS" seconds :: Int -> Time
+foreign import ccall "mini-os/time.h block_domain" blockDomain :: Time -> IO ()
 
+foreign import ccall "hs_local_irq_save" localIrqSave :: Word32 -> IO Word32
+foreign import ccall "hs_local_irq_restore" localIrqRestore :: Word32 -> IO Word32
+
+
+foreign import primitive "const.STACK_SIZE_PAGE_ORDER " stackSizePageOrder :: Int
+foreign import ccall "mini-os/mm.h free_pages" freePages :: Ptr a -> Int -> IO ()
+foreign import ccall "mini-os/xmalloc.h xfree" xfree :: Ptr a -> IO ()
+
+foreign import ccall "hs_bug" bug :: IO ()
