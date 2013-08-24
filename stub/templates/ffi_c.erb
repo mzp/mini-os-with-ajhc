@@ -1,0 +1,8 @@
+<%  map.each do|struct, fields| %>
+  struct <%= struct %>;
+
+  <% fields.each do|type, name| %>
+    <%= c_type type %> hs_get_<%= struct %>_<%= name %>(struct <%= struct %>* p);
+    void hs_set_<%= struct %>_<%= name %>(struct <%= struct %>* p, <%= c_type type %> value);
+  <% end %>
+<% end %>

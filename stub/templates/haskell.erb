@@ -13,13 +13,13 @@ data <%= haskell struct %> = <%= haskell struct %> {
 <% end %>
 
 <% map.each do|struct, fields| %>
-foreign import ccall "hs_new_<%= struct %>" mk<%= haskell struct %> :: IO (Ptr <%= haskell struct %>)
+foreign import ccall "<%= mod_name %>_ffi_stub.h hs_new_<%= struct %>" mk<%= haskell struct %> :: IO (Ptr <%= haskell struct %>)
 
 <% fields.each do|type, name| %>
-foreign import ccall "hs_set_<%= struct %>_<%= name %>" set<%= haskell struct %><%= haskell name %> :: Ptr <%= haskell struct %> -> <%= haskell_type type %> -> IO ()
+foreign import ccall "<%= mod_name %>_ffi_stub.h hs_set_<%= struct %>_<%= name %>" set<%= haskell struct %><%= haskell name %> :: Ptr <%= haskell struct %> -> <%= haskell_type type %> -> IO ()
 
   <% unless haskell_type(type)[-1] == '_' %>
-foreign import ccall "hs_get_<%= struct %>_<%= name %>" get<%= haskell struct %><%= haskell name %> :: Ptr <%= haskell struct %> -> IO <%= haskell_type type %>
+foreign import ccall "<%= mod_name %>_ffi_stub.h hs_get_<%= struct %>_<%= name %>" get<%= haskell struct %><%= haskell name %> :: Ptr <%= haskell struct %> -> IO <%= haskell_type type %>
   <% end %>
 <% end %>
 <% end %>

@@ -10,6 +10,7 @@ TypeMap =  {
   'uint64_t' => 'Word64',
   'uint64_t*' => '(Ptr Word64)',
   'int16_t' => 'Int16',
+  'int64_t' => 'Int64',
   'int' => 'Int32',
   'int8_t' => 'Int8',
   'time_t' => 'Int64',
@@ -20,6 +21,9 @@ TypeMap =  {
   'grant_ref_t' => 'Word32',
   'evtchn_port_t' => 'Word32',
   '__guest_handle_ulong' => '(Ptr Word8)'
+}
+CTypeMap = {
+  '__guest_handle_ulong' => 'unsigned long'
 }
 Keywords = %w(in)
 
@@ -47,7 +51,12 @@ end
 def c_type(ty)
   case ty.first
   when :prim
-    ty[1].gsub(/\[\]$/,'*')
+    t = ty[1].gsub(/\[\]$/,'*')
+    if CTypeMap.key? t then
+      CTypeMap[t]
+    else
+      t
+    end
   when :struct
     "struct #{ty[1]}*"
   end
@@ -93,7 +102,7 @@ struct #{struct}* hs_new_#{struct}(void) {
     fields.each do|type, name|
       io.puts <<-END
 #{c_type type} hs_get_#{struct}_#{name}(struct #{struct}* p) {
-  return p->#{name};
+  return (#{c_type type})p->#{name};
 }
       END
 
@@ -112,12 +121,19 @@ def haskell_stub(io, mod_name, map)
   io.puts ERB.new(File.read(File.dirname(__FILE__) + "/templates/haskell.erb")).result(binding)
 end
 
+def ffi_stub(io, mod_name, map)
+  io.puts ERB.new(File.read(File.dirname(__FILE__) + "/templates/ffi_c.erb")).result(binding)
+end
+
 ARGV.each do|path|
   map = read File.open(path)
   mod_name = File.basename(path, ".h")
   FileUtils.mkdir_p 'stub'
   File.open('stub/' + mod_name  + "_c_stub.h", "w+") {|io|
     c_stub(io, map)
+  }
+  File.open('stub/' + mod_name + '_ffi_stub.h', 'w+') {|io|
+    ffi_stub(io, mod_name, map)
   }
   File.open('stub/' + haskell(mod_name)  + "Stub.hs", "w+") {|io|
     haskell_stub(io, mod_name, map)
