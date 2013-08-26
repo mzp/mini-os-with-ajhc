@@ -55,3 +55,7 @@ And run:
 
     $ cd mini-os
     $ xm create -c mini-os.cfg
+
+## Documents
+
+ * Explain motivation in Japanese: http://www.slideshare.net/mzpi/typesafe-os
