@@ -1,15 +1,15 @@
-/* 
+/*
  ****************************************************************************
  * (C) 2006 - Cambridge University
  ****************************************************************************
  *
  *        File: xenbus.c
- *      Author: Steven Smith (sos22@cam.ac.uk) 
+ *      Author: Steven Smith (sos22@cam.ac.uk)
  *     Changes: Grzegorz Milos (gm281@cam.ac.uk)
  *     Changes: John D. Ramsdell
- *              
+ *
  *        Date: Jun 2006, chages Aug 2005
- * 
+ *
  * Environment: Xen Minimal OS
  * Description: Minimal implementation of xenbus
  *
@@ -51,7 +51,7 @@ static struct watch {
     xenbus_event_queue *events;
     struct watch *next;
 } *watches;
-struct xenbus_req_info 
+struct xenbus_req_info
 {
     int in_use:1;
     struct wait_queue_head waitq;
@@ -196,10 +196,10 @@ static void xenbus_thread_func(void *ign)
     struct xsd_sockmsg msg;
     unsigned prod = xenstore_buf->rsp_prod;
 
-    for (;;) 
+    for (;;)
     {
         wait_event(xb_waitq, prod != xenstore_buf->rsp_prod);
-        while (1) 
+        while (1)
         {
             prod = xenstore_buf->rsp_prod;
             DEBUG("Rsp_cons %d, rsp_prod %d.\n", xenstore_buf->rsp_cons,
@@ -298,7 +298,7 @@ static int allocate_xenbus_id(void)
     static int probe;
     int o_probe;
 
-    while (1) 
+    while (1)
     {
         spin_lock(&req_lock);
         if (nr_live_reqs < NR_REQS)
@@ -308,7 +308,7 @@ static int allocate_xenbus_id(void)
     }
 
     o_probe = probe;
-    for (;;) 
+    for (;;)
     {
         if (!req_info[o_probe].in_use)
             break;
@@ -324,9 +324,12 @@ static int allocate_xenbus_id(void)
     return o_probe;
 }
 
+void hs_init_xenbus(void);
 /* Initialise xenbus. */
 void init_xenbus(void)
 {
+  hs_init_xenbus();
+#if 0
     int err;
     DEBUG("init_xenbus called.\n");
     xenstore_buf = mfn_to_virt(start_info.store_mfn);
@@ -338,6 +341,7 @@ void init_xenbus(void)
     unmask_evtchn(start_info.store_evtchn);
     printk("xenbus initialised on irq %d mfn %#lx\n",
 	   err, start_info.store_mfn);
+#endif
 }
 
 void fini_xenbus(void)
@@ -373,7 +377,7 @@ static void xb_write(int type, int req_id, xenbus_transaction_t trans_id,
     /* Wait for the ring to drain to the point where we can send the
        message. */
     prod = xenstore_buf->req_prod;
-    if (prod + len - xenstore_buf->req_cons > XENSTORE_RING_SIZE) 
+    if (prod + len - xenstore_buf->req_cons > XENSTORE_RING_SIZE)
     {
         /* Wait for there to be space on the ring */
         DEBUG("prod %d, len %d, cons %d, size %d; waiting.\n",
@@ -389,7 +393,7 @@ static void xb_write(int type, int req_id, xenbus_transaction_t trans_id,
        overflowing the ring.  Do so. */
     total_off = 0;
     req_off = 0;
-    while (total_off < len) 
+    while (total_off < len)
     {
         this_chunk = min(cur_req->len - req_off,
                 XENSTORE_RING_SIZE - MASK_XENSTORE_IDX(prod));
@@ -398,7 +402,7 @@ static void xb_write(int type, int req_id, xenbus_transaction_t trans_id,
         prod += this_chunk;
         req_off += this_chunk;
         total_off += this_chunk;
-        if (req_off == cur_req->len) 
+        if (req_off == cur_req->len)
         {
             req_off = 0;
             if (cur_req == &header_req)
@@ -465,7 +469,7 @@ static char *errmsg(struct xsd_sockmsg *rep)
     res[rep->len] = 0;
     free(rep);
     return res;
-}	
+}
 
 /* Send a debug message to xenbus.  Can block. */
 static void xenbus_debug_msg(const char *msg)
@@ -535,7 +539,7 @@ char *xenbus_read(xenbus_transaction_t xbt, const char *path, char **value)
 
 char *xenbus_write(xenbus_transaction_t xbt, const char *path, const char *value)
 {
-    struct write_req req[] = { 
+    struct write_req req[] = {
 	{path, strlen(path) + 1},
 	{value, strlen(value)},
     };
@@ -552,7 +556,7 @@ char* xenbus_watch_path_token( xenbus_transaction_t xbt, const char *path, const
 {
     struct xsd_sockmsg *rep;
 
-    struct write_req req[] = { 
+    struct write_req req[] = {
         {path, strlen(path) + 1},
 	{token, strlen(token) + 1},
     };
@@ -582,7 +586,7 @@ char* xenbus_unwatch_path_token( xenbus_transaction_t xbt, const char *path, con
 {
     struct xsd_sockmsg *rep;
 
-    struct write_req req[] = { 
+    struct write_req req[] = {
         {path, strlen(path) + 1},
 	{token, strlen(token) + 1},
     };
@@ -644,7 +648,7 @@ char *xenbus_get_perms(xenbus_transaction_t xbt, const char *path, char **value)
 char *xenbus_set_perms(xenbus_transaction_t xbt, const char *path, domid_t dom, char perm)
 {
     char value[PERM_MAX_SIZE];
-    struct write_req req[] = { 
+    struct write_req req[] = {
 	{path, strlen(path) + 1},
 	{value, 0},
     };
@@ -759,7 +763,7 @@ static void do_ls_test(const char *pre)
 	free(msg);
 	return;
     }
-    for (x = 0; dirs[x]; x++) 
+    for (x = 0; dirs[x]; x++)
     {
         printk("ls %s[%d] -> %s\n", pre, x, dirs[x]);
         free(dirs[x]);
@@ -834,6 +838,24 @@ void test_xenbus(void)
     printk("(Should have said ENOENT)\n");
 }
 
+void hs_set_xenstore_buf(struct xenstore_domain_interface *buf) {
+  xenstore_buf = buf;
+}
+
+uint64_t hs_get_store_mfn(void) {
+  return start_info.store_mfn;
+
+}
+
+uint32_t hs_get_store_evtchn(void) {
+  return start_info.store_evtchn;
+}
+void* hs_xenbus_thread_func(void) {
+  return &xenbus_thread_func;
+}
+void* hs_xenbus_evtchn_handler(void) {
+  return &xenbus_evtchn_handler;
+}
 /*
  * Local variables:
  * mode: C

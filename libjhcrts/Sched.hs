@@ -1,4 +1,4 @@
-module Sched(initSched) where
+module Sched(initSched, createThread) where
 import Data.Bits
 import Foreign.C.String
 import Foreign.Ptr

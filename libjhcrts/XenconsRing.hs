@@ -9,7 +9,6 @@ import Util
 
 foreign import ccall "console/xencons_ring.c hs_get_evtch" getEvtch :: IO Word32
 foreign import ccall "console/xencons_ring.c hs_get_mfn" getMfn :: IO Word64
-foreign import ccall "console/xencons_ring.c hs_mfn_to_virt" mfnToVirt :: Word64 -> IO (Ptr Word8)
 foreign import ccall "console/xencons_ring.c hs_notify_daemon" notifyDaemon :: Ptr ConsfrontDev -> IO ()
 foreign import ccall "console/console.c xencons_tx" xenconsTx :: IO ()
 foreign import ccall "console/console.c xencons_rx" xenconsRx :: CString -> Word32 -> Ptr Word8 -> IO ()
