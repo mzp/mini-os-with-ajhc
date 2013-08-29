@@ -2,6 +2,7 @@ module Xen where
 import Data.Word
 import Foreign.Ptr
 
+foreign import ccall "hs_rmb" rmb :: IO ()
 foreign import ccall "hs_mfn_to_virt" mfnToVirt :: Word64 -> IO (Ptr Word8)
 
 foreign import ccall "hypervisor.h unmask_evtchn" unmaskEvtch :: Word32 -> IO ()

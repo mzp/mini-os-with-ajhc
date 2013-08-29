@@ -13,7 +13,6 @@ import Struct
 foreign import ccall "hs_get_shadow" getShadow :: IO (Ptr ShadowTimeInfo)
 foreign import ccall "hs_get_shadow_ts_version" getShadowTsVersion :: IO Word32
 foreign import ccall "hs_set_shadow_ts_version" setShadowTsVersion :: Word32 -> IO ()
-foreign import ccall "hs_rmb" rmb :: IO ()
 
 foreign import ccall "hs_get_shared_info" getSharedInfo :: IO (Ptr SharedInfo)
 foreign import ccall "hs_get_vcpu_time_info" getVCPUTimeInfo :: IO (Ptr VcpuTimeInfo)

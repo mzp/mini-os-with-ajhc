@@ -6,8 +6,6 @@ struct xencons_interface {
   uint32_t out_cons;
   uint32_t out_prod;
 };
-struct xenbus_event {
-};
 
 struct consfront_dev {
   domid_t dom;

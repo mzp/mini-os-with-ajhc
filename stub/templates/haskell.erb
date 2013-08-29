@@ -2,6 +2,7 @@ module <%= haskell mod_name %>Stub where
 import Foreign.Ptr
 import Foreign.C.String
 import Struct
+import XenbusStub
 
 <% map.each do|struct, fields| %>
 data <%= haskell struct %> = <%= haskell struct %> {

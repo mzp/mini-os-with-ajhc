@@ -1,5 +1,5 @@
 HASKELL_SRC = Main.hs Time.hs Util.hs Xen.hs Struct.hs Console.hs XenconsRing.hs Gnttab.hs Sched.hs List.hs Xenbus.hs
-STUB = TimeShadowInfoStub.hs XenconsoleStub.hs GnttabStub.hs SchedStub.hs
+STUB = TimeShadowInfoStub.hs XenconsoleStub.hs GnttabStub.hs SchedStub.hs XsWireStub.hs XenbusStub.hs
 
 all: libjhcrts.a
 

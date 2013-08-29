@@ -16,6 +16,7 @@ TypeMap =  {
   'time_t' => 'Int64',
   'long' => 'Int32',
   'char*' => 'CString',
+  'void*' => '(Ptr Word8)',
   'char[]' => 'CString',
   'domid_t' => 'Word16',
   'grant_ref_t' => 'Word32',
@@ -25,7 +26,7 @@ TypeMap =  {
 CTypeMap = {
   '__guest_handle_ulong' => 'unsigned long'
 }
-Keywords = %w(in)
+Keywords = %w(in type)
 
 def each(xs, &f)
   first = true
@@ -58,7 +59,9 @@ def c_type(ty)
       t
     end
   when :struct
-    "struct #{ty[1]}*"
+    t = "struct #{ty[1]}"
+    ty[2].times { t += '*' }
+    t
   end
 end
 
@@ -67,7 +70,11 @@ def haskell_type(ty)
   when :prim
     TypeMap[ty[1]]
   when :struct
-    "(Ptr #{haskell ty[1]})"
+    t = haskell ty[1]
+    ty[2].times {
+      t  = "(Ptr #{t})"
+    }
+    t
   end
 end
 
@@ -79,12 +86,13 @@ def read(content)
     when /struct (\w+) {/
       current = $1
       map[current] = []
-    when /\s*struct\s+(\w+)\*\s+(\w+)/
-      map[current] << [[:struct,$1], $2]
+    when /\s*struct\s+(\w+)(\*+)\s+(\w+)/
+      map[current] << [[:struct,$1, $2.size], $3]
     when /\s*([\w*\[\]]+)\s+(\w+)/
       map[current] << [[:prim, $1], $2]
     end
   end
+  pp map
   map
 end
 
@@ -102,7 +110,7 @@ struct #{struct}* hs_new_#{struct}(void) {
     fields.each do|type, name|
       io.puts <<-END
 #{c_type type} hs_get_#{struct}_#{name}(struct #{struct}* p) {
-  return (#{c_type type})p->#{name};
+  return p->#{name};
 }
       END
 

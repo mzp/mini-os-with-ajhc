@@ -61,7 +61,7 @@ struct xenbus_req_info
 #define NR_REQS 32
 static struct xenbus_req_info req_info[NR_REQS];
 
-static void memcpy_from_ring(const void *Ring,
+void memcpy_from_ring(const void *Ring,
         void *Dest,
         int off,
         int len)
@@ -190,84 +190,6 @@ char *xenbus_wait_for_state_change(const char* path, XenbusState *state, xenbus_
     return NULL;
 }
 
-
-static void xenbus_thread_func(void *ign)
-{
-    struct xsd_sockmsg msg;
-    unsigned prod = xenstore_buf->rsp_prod;
-
-    for (;;)
-    {
-        wait_event(xb_waitq, prod != xenstore_buf->rsp_prod);
-        while (1)
-        {
-            prod = xenstore_buf->rsp_prod;
-            DEBUG("Rsp_cons %d, rsp_prod %d.\n", xenstore_buf->rsp_cons,
-                    xenstore_buf->rsp_prod);
-            if (xenstore_buf->rsp_prod - xenstore_buf->rsp_cons < sizeof(msg))
-                break;
-            rmb();
-            memcpy_from_ring(xenstore_buf->rsp,
-                    &msg,
-                    MASK_XENSTORE_IDX(xenstore_buf->rsp_cons),
-                    sizeof(msg));
-            DEBUG("Msg len %d, %d avail, id %d.\n",
-                    msg.len + sizeof(msg),
-                    xenstore_buf->rsp_prod - xenstore_buf->rsp_cons,
-                    msg.req_id);
-            if (xenstore_buf->rsp_prod - xenstore_buf->rsp_cons <
-                    sizeof(msg) + msg.len)
-                break;
-
-            DEBUG("Message is good.\n");
-
-            if(msg.type == XS_WATCH_EVENT)
-            {
-		struct xenbus_event *event = malloc(sizeof(*event) + msg.len);
-                xenbus_event_queue *events = NULL;
-		char *data = (char*)event + sizeof(*event);
-                struct watch *watch;
-
-                memcpy_from_ring(xenstore_buf->rsp,
-		    data,
-                    MASK_XENSTORE_IDX(xenstore_buf->rsp_cons + sizeof(msg)),
-                    msg.len);
-
-		event->path = data;
-		event->token = event->path + strlen(event->path) + 1;
-
-                xenstore_buf->rsp_cons += msg.len + sizeof(msg);
-
-                for (watch = watches; watch; watch = watch->next)
-                    if (!strcmp(watch->token, event->token)) {
-                        events = watch->events;
-                        break;
-                    }
-
-                if (events) {
-                    event->next = *events;
-                    *events = event;
-                    wake_up(&xenbus_watch_queue);
-                } else {
-                    printk("unexpected watch token %s\n", event->token);
-                    free(event);
-                }
-            }
-
-            else
-            {
-                req_info[msg.req_id].reply = malloc(sizeof(msg) + msg.len);
-                memcpy_from_ring(xenstore_buf->rsp,
-                    req_info[msg.req_id].reply,
-                    MASK_XENSTORE_IDX(xenstore_buf->rsp_cons),
-                    msg.len + sizeof(msg));
-                xenstore_buf->rsp_cons += msg.len + sizeof(msg);
-                wake_up(&req_info[msg.req_id].waitq);
-            }
-        }
-    }
-}
-
 static void xenbus_evtchn_handler(evtchn_port_t port, struct pt_regs *regs,
 				  void *ign)
 {
@@ -322,26 +244,6 @@ static int allocate_xenbus_id(void)
     init_waitqueue_head(&req_info[o_probe].waitq);
 
     return o_probe;
-}
-
-void hs_init_xenbus(void);
-/* Initialise xenbus. */
-void init_xenbus(void)
-{
-  hs_init_xenbus();
-#if 0
-    int err;
-    DEBUG("init_xenbus called.\n");
-    xenstore_buf = mfn_to_virt(start_info.store_mfn);
-    create_thread("xenstore", xenbus_thread_func, NULL);
-    DEBUG("buf at %p.\n", xenstore_buf);
-    err = bind_evtchn(start_info.store_evtchn,
-		      xenbus_evtchn_handler,
-              NULL);
-    unmask_evtchn(start_info.store_evtchn);
-    printk("xenbus initialised on irq %d mfn %#lx\n",
-	   err, start_info.store_mfn);
-#endif
 }
 
 void fini_xenbus(void)
@@ -850,12 +752,50 @@ uint64_t hs_get_store_mfn(void) {
 uint32_t hs_get_store_evtchn(void) {
   return start_info.store_evtchn;
 }
-void* hs_xenbus_thread_func(void) {
-  return &xenbus_thread_func;
-}
 void* hs_xenbus_evtchn_handler(void) {
   return &xenbus_evtchn_handler;
 }
+
+struct watch* hs_get_watches(void) {
+  return watches;
+}
+
+struct wait_queue_head* hs_get_watch_queue(void) {
+  return &xenbus_watch_queue;
+}
+
+void hs_add_head(struct xenbus_event* event,struct xenbus_event** events) {
+  event->next = *events;
+  *events = event;
+}
+
+void abort(void);
+void hs_wait_event(void) {
+  unsigned prod = xenstore_buf->rsp_prod;
+  wait_event(xb_waitq, prod != xenstore_buf->rsp_prod);
+}
+
+struct xenstore_domain_interface *hs_get_xenstore_buf(void){
+  return xenstore_buf;
+}
+
+struct xenbus_req_info* hs_get_req_info(uint32_t n) {
+  return &req_info[n];
+}
+
+void* hs_make_msg(uint32_t len) {
+  return malloc(sizeof(struct xsd_sockmsg) + len);
+}
+
+struct wait_queue_head* hs_get_waitq(uint32_t n) {
+  return &req_info[n].waitq;
+}
+
+void* hs_make_event(uint32_t len) {
+  return malloc(sizeof(struct xenbus_event) + len);
+}
+#include "../../stub/stub/xs_wire_c_stub.h"
+#include "../../stub/stub/xenbus_c_stub.h"
 /*
  * Local variables:
  * mode: C
