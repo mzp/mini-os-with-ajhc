@@ -30,9 +30,9 @@ Link to include directory:
 
 ### generate stub files
 
-   $ cd stub
-   $ ./gen-stub idl/*.h
-   $ cd ..
+    $ cd stub
+    $ ./gen-stub idl/*.h
+    $ cd ..
 
 ### build haskell code
 
@@ -46,7 +46,7 @@ Link to include directory:
 
 Write `mini-os/mini-os.cfg` like this:
 
-    kernel = "mini-os"
+    kernel = "/path/to/mini-os"
     memory = 128
     name = "MINIOS"
     on_crash = "destroy"
