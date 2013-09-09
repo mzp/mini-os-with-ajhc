@@ -465,12 +465,14 @@ __attribute__((weak)) int app_main(start_info_t *si)
 {
     printk("Dummy main: start_info=%p\n", si);
     create_thread("xenbus_tester", xenbus_tester, si);
-    create_thread("periodic_thread", periodic_thread, si);
     create_thread("netfront", netfront_thread, si);
+    if(0){
+    create_thread("periodic_thread", periodic_thread, si);
     create_thread("blkfront", blkfront_thread, si);
     create_thread("fbfront", fbfront_thread, si);
     create_thread("kbdfront", kbdfront_thread, si);
     create_thread("pcifront", pcifront_thread, si);
+    }
     return 0;
 }
 

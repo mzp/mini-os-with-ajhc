@@ -1,4 +1,4 @@
-/* Minimal network driver for Mini-OS. 
+/* Minimal network driver for Mini-OS.
  * Copyright (c) 2006-2007 Jacob Gorm Hansen, University of Copenhagen.
  * Based on netfront.c from Xen Linux.
  *
@@ -162,7 +162,7 @@ moretodo:
         void* page = buf->page;
 
         /* We are sure to have free gnttab entries since they got released above */
-        buf->gref = req->gref = 
+        buf->gref = req->gref =
             gnttab_grant_access(dev->dom,virt_to_mfn(page),0);
 
         req->id = id;
@@ -171,7 +171,7 @@ moretodo:
     wmb();
 
     dev->rx.req_prod_pvt = req_prod + i;
-    
+
     RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&dev->rx, notify);
     if (notify)
         notify_remote_via_evtchn(dev->evtchn);
@@ -189,7 +189,7 @@ void network_tx_buf_gc(struct netfront_dev *dev)
         prod = dev->tx.sring->rsp_prod;
         rmb(); /* Ensure we see responses up to 'rp'. */
 
-        for (cons = dev->tx.rsp_cons; cons != prod; cons++) 
+        for (cons = dev->tx.rsp_cons; cons != prod; cons++)
         {
             struct netif_tx_response *txrsp;
             struct net_buffer *buf;
@@ -340,6 +340,7 @@ struct netfront_dev *init_netfront(char *_nodename, void (*thenetif_rx)(unsigned
         dev->rx_buffers[i].page = (char*)alloc_page();
     }
 
+    printk("backend\n");
     snprintf(path, sizeof(path), "%s/backend-id", nodename);
     dev->dom = xenbus_read_integer(path);
 #ifdef HAVE_LIBC
@@ -360,16 +361,21 @@ struct netfront_dev *init_netfront(char *_nodename, void (*thenetif_rx)(unsigned
     FRONT_RING_INIT(&dev->tx, txs, PAGE_SIZE);
     FRONT_RING_INIT(&dev->rx, rxs, PAGE_SIZE);
 
+    printk("foo\n");
     dev->tx_ring_ref = gnttab_grant_access(dev->dom,virt_to_mfn(txs),0);
+    printk("rx\n");
     dev->rx_ring_ref = gnttab_grant_access(dev->dom,virt_to_mfn(rxs),0);
 
+    printk("grant\n");
     init_rx_buffers(dev);
 
+    printk("bar\n");
     dev->netif_rx = thenetif_rx;
 
     dev->events = NULL;
 
 again:
+    printk("again\n");
     err = xenbus_transaction_start(&xbt);
     if (err) {
         printk("starting transaction\n");
@@ -571,12 +577,12 @@ void init_rx_buffers(struct netfront_dev *dev)
     int notify;
 
     /* Rebuild the RX buffer freelist and the RX ring itself. */
-    for (requeue_idx = 0, i = 0; i < NET_RX_RING_SIZE; i++) 
+    for (requeue_idx = 0, i = 0; i < NET_RX_RING_SIZE; i++)
     {
         struct net_buffer* buf = &dev->rx_buffers[requeue_idx];
         req = RING_GET_REQUEST(&dev->rx, requeue_idx);
 
-        buf->gref = req->gref = 
+        buf->gref = req->gref =
             gnttab_grant_access(dev->dom,virt_to_mfn(buf->page),0);
 
         req->id = requeue_idx;
@@ -588,7 +594,7 @@ void init_rx_buffers(struct netfront_dev *dev)
 
     RING_PUSH_REQUESTS_AND_CHECK_NOTIFY(&dev->rx, notify);
 
-    if (notify) 
+    if (notify)
         notify_remote_via_evtchn(dev->evtchn);
 
     dev->rx.sring->rsp_event = dev->rx.rsp_cons + 1;
@@ -623,7 +629,7 @@ void netfront_xmit(struct netfront_dev *dev, unsigned char* data,int len)
 
     memcpy(page,data,len);
 
-    buf->gref = 
+    buf->gref =
         tx->gref = gnttab_grant_access(dev->dom,virt_to_mfn(page),1);
 
     tx->offset=0;
