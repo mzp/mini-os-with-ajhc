@@ -50,8 +50,10 @@ get_free_entry(void)
     local_irq_save(flags);
     ref = gnttab_list[0];
     printk("bug\n");
-    abort();
     BUG_ON(ref < NR_RESERVED_ENTRIES || ref >= NR_GRANT_ENTRIES);
+    if(ref < NR_RESERVED_ENTRIES || ref >= NR_GRANT_ENTRIES){
+      abort();
+      }
     printk("buged\n");
     gnttab_list[0] = gnttab_list[ref];
 #ifdef GNT_DEBUG
@@ -65,14 +67,11 @@ get_free_entry(void)
 grant_ref_t
 gnttab_grant_access(domid_t domid, unsigned long frame, int readonly)
 {
-  printk("gnttab_grant_access\n");
     grant_ref_t ref;
 
     ref = get_free_entry();
-  printk("free\n");
     gnttab_table[ref].frame = frame;
     gnttab_table[ref].domid = domid;
-  printk("wmb\n");
     wmb();
     readonly *= GTF_readonly;
     gnttab_table[ref].flags = GTF_permit_access | readonly;
@@ -180,6 +179,7 @@ fini_gnttab(void)
 }
 
 // -------------
+void abort(void);
 void hs_set_xen_guest_handle(struct gnttab_setup_table* ptr, unsigned long* frames) {
   set_xen_guest_handle(ptr->frame_list, frames);
 }
@@ -201,7 +201,8 @@ grant_ref_t* hs_get_gnttab_list(void) {
   return gnttab_list;
 }
 void* hs_get_gnttab_sem(void) {
-  printk("[%d]\n", gnttab_sem.count);
+//      printk("%d - %d\n", NR_RESERVED_ENTRIES, NR_GRANT_ENTRIES);
+ // printk("[%d]\n", gnttab_sem.count);
   return &gnttab_sem;
 }
 #include <xmalloc.h>

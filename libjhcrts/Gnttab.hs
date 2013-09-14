@@ -23,7 +23,7 @@ nrGrantEntries    = nrGrantFrames * pageSize `div` entrySize
 
 initGnttab :: IO ()
 initGnttab = do (frames :: Ptr Word32) <- mallocArray $ fromInteger $ toInteger nrGrantFrames
-                mapM_ (putFreeEntry.fromInteger.toInteger) [nrReservedEntries..nrGrantFrames-1]
+                mapM_ (putFreeEntry.fromInteger.toInteger) [nrReservedEntries..nrGrantEntries-1]
                 let setup = GnttabSetupTable {
                   gnttabSetupTableDom = domidSelf,
                   gnttabSetupTableNrFrames = nrGrantFrames,
@@ -35,8 +35,8 @@ initGnttab = do (frames :: Ptr Word32) <- mallocArray $ fromInteger $ toInteger 
                 hypervisorGrantTableOp opSetupTable ptr 1
                 grantTable <- mapFrames (castPtr frames) $ fromInteger $ toInteger nrGrantFrames
                 setGnttabTable grantTable
-                printk $ "gnttab_table mapped at" ++ show grantTable ++ ".\n"
 
+foreign import ccall "abort" abort :: IO ()
 putFreeEntry :: GrantRef -> IO ()
 putFreeEntry ref =
   do flags <- localIrqSave 0

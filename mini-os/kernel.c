@@ -475,7 +475,7 @@ __attribute__((weak)) int app_main(start_info_t *si)
     }
     return 0;
 }
-
+void abort(void);
 /*
  * INITIAL C ENTRY POINT.
  */
@@ -532,13 +532,11 @@ void start_kernel(start_info_t *si)
 
     /* Init grant tables */
     init_gnttab();
-
     /* Init scheduler. */
     init_sched();
 
     /* Init XenBus */
     init_xenbus();
-
     /* Call (possibly overridden) app_main() */
     app_main(&start_info);
 
