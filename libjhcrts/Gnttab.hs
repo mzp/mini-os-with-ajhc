@@ -23,7 +23,7 @@ nrGrantEntries    = nrGrantFrames * pageSize `div` entrySize
 
 initGnttab :: IO ()
 initGnttab = do (frames :: Ptr Word32) <- mallocArray $ fromInteger $ toInteger nrGrantFrames
-                mapM_ (putFreeEntry.fromInteger.toInteger) [nrReservedEntries..nrGrantFrames-1]
+                mapM_ (putFreeEntry.fromInteger.toInteger) [nrReservedEntries..nrGrantEntries-1]
                 let setup = GnttabSetupTable {
                   gnttabSetupTableDom = domidSelf,
                   gnttabSetupTableNrFrames = nrGrantFrames,
