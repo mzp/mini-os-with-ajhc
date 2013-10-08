@@ -28,10 +28,6 @@ static void s_cleanup_blocks(arena_t arena);
 static struct s_block *get_free_block(gc_t gc, arena_t arena, bool retry);
 static void *jhc_aligned_alloc(unsigned size);
 
-typedef struct {
-        sptr_t ptrs[0];
-} entry_t;
-
 static const void *nh_start, *nh_end;
 
 static bool
@@ -39,14 +35,6 @@ gc_check_heap(entry_t *s)
 {
         return (s < (entry_t *)nh_start || s > (entry_t *)nh_end);
 }
-
-struct stack {
-        unsigned size;
-        unsigned ptr;
-        entry_t * *stack;
-};
-
-#define EMPTY_STACK { 0, 0, NULL }
 
 static void
 stack_grow(struct stack *s, unsigned grow)
@@ -71,15 +59,13 @@ stack_check(struct stack *s, unsigned n) {
         }
 }
 
-static struct stack root_stack = EMPTY_STACK;
-
 void gc_add_root(gc_t gc, arena_t arena, void *root)
 {
         if(IS_PTR(root)) {
                 entry_t *nroot = TO_GCPTR(root);
                 if(gc_check_heap(nroot)) {
-                        stack_check(&root_stack,1);
-                        root_stack.stack[root_stack.ptr++] = nroot;
+                        stack_check(&arena->root_stack,1);
+                        arena->root_stack.stack[arena->root_stack.ptr++] = nroot;
                 }
         }
 }
@@ -141,10 +127,10 @@ gc_perform_gc(gc_t gc, arena_t arena)
         clear_used_bits(arena);
 
         debugf("Setting Roots:");
-        stack_check(&stack, root_stack.ptr);
-        for(unsigned i = 0; i < root_stack.ptr; i++) {
-                gc_add_grey(&stack, root_stack.stack[i]);
-                debugf(" %p", root_stack.stack[i]);
+        stack_check(&stack, arena->root_stack.ptr);
+        for(unsigned i = 0; i < arena->root_stack.ptr; i++) {
+                gc_add_grey(&stack, arena->root_stack.stack[i]);
+                debugf(" %p", arena->root_stack.stack[i]);
                 DO_GC_MARK_DEEPER(&stack, &number_redirects);
         }
         debugf(" # ");
@@ -198,7 +184,7 @@ gc_perform_gc(gc_t gc, arena_t arena)
         free(stack.stack);
         s_cleanup_blocks(arena);
         if (JHC_STATUS) {
-                fprintf(stderr, "%3u - %6u Used: %4u Thresh: %4u Ss: %5u Ps: %5u Rs: %5u Root: %3u\n",
+                jhc_printf_stderr("%3u - %6u Used: %4u Thresh: %4u Ss: %5u Ps: %5u Rs: %5u Root: %3u\n",
                         arena->number_gcs,
                         arena->number_allocs,
                         (unsigned)arena->block_used,
@@ -206,7 +192,7 @@ gc_perform_gc(gc_t gc, arena_t arena)
                         number_stack,
                         number_ptr,
                         number_redirects,
-                        (unsigned)root_stack.ptr
+                        (unsigned)arena->root_stack.ptr
                        );
                 arena->number_allocs = 0;
         }
@@ -266,9 +252,9 @@ jhc_alloc_fini(gc_t gc,arena_t arena) {
         struct s_cache *sc;
 
         if(_JHC_PROFILE || JHC_STATUS) {
-                fprintf(stderr, "arena: %p\n", arena);
-                fprintf(stderr, "  block_used: %i\n", arena->block_used);
-                fprintf(stderr, "  block_threshold: %i\n", arena->block_threshold);
+                jhc_printf_stderr("arena: %p\n", arena);
+                jhc_printf_stderr("  block_used: %i\n", arena->block_used);
+                jhc_printf_stderr("  block_threshold: %i\n", arena->block_threshold);
                 struct s_cache *sc;
                 SLIST_FOREACH(sc,&arena->caches,next)
                         print_cache(sc);
@@ -395,7 +381,7 @@ jhc_aligned_alloc(unsigned size) {
         int ret = posix_memalign(&base,BLOCK_SIZE,MEGABLOCK_SIZE);
 #endif
         if(ret != 0) {
-                fprintf(stderr,"Unable to allocate memory for aligned alloc: %u\n", size);
+                jhc_printf_stderr("Unable to allocate memory for aligned alloc: %u\n", size);
                 abort();
         }
         return base;
@@ -413,14 +399,13 @@ s_new_megablock(arena_t arena)
 #ifdef _JHC_JGC_LIMITED_NUM_MEGABLOCK
                 static int count = 0;
                 if (count >= _JHC_JGC_LIMITED_NUM_MEGABLOCK) {
-                  abort();
+                        abort();
                 }
                 mb->base = aligned_megablock + (MEGABLOCK_SIZE) * count;
                 count++;
 #else
                 mb->base = jhc_aligned_alloc(MEGABLOCK_SIZE);
 #endif
-
         }
         jhc_rts_unlock();
 
@@ -624,7 +609,7 @@ retry_s_alloc:
                         SLIST_INSERT_HEAD(&sc->full_blocks,pg,link);
                 }
                 assert(S_BLOCK(val) == pg);
-                //printf("s_alloc: val: %p s_block: %p size: %i color: %i found: %i num_free: %i\n", val, pg, pg->pi.size, pg->pi.color, found, pg->num_free);
+                //jhc_printf_stderr("s_alloc: val: %p s_block: %p size: %i color: %i found: %i num_free: %i\n", val, pg, pg->pi.size, pg->pi.color, found, pg->num_free);
                 return val;
         }
 }
@@ -710,6 +695,7 @@ void
 alloc_public_caches(arena_t arena, size_t size) {
         if (arena->public_caches_p == NULL) {
                 arena->public_caches_p = malloc(size);
+                memset(arena->public_caches_p, 0, size);
         }
 }
 
@@ -737,6 +723,7 @@ new_arena(void) {
         arena->block_used = 0;
         arena->block_threshold = 8;
         arena->current_megablock = NULL;
+	memset(&arena->root_stack, 0, sizeof(arena->root_stack));
 
         for (int i = 0; i < GC_STATIC_ARRAY_NUM; i++) {
                 find_cache(&arena->array_caches[i], arena, i + 1, i + 1);
@@ -805,23 +792,23 @@ gc_add_foreignptr_finalizer(wptr_t fp, HsFunPtr finalizer) {
 
 void
 print_cache(struct s_cache *sc) {
-        fprintf(stderr, "num_entries: %i with %lu bytes of header\n",
+        jhc_printf_stderr("num_entries: %i with %lu bytes of header\n",
                 (int)sc->num_entries, sizeof(struct s_block) +
                 BITARRAY_SIZE_IN_BYTES(sc->num_entries));
-        fprintf(stderr, "  size: %i words %i ptrs\n",
+        jhc_printf_stderr("  size: %i words %i ptrs\n",
                 (int)sc->size,(int)sc->num_ptrs);
 #if _JHC_PROFILE
-        fprintf(stderr, "  allocations: %lu\n", (unsigned long)sc->allocations);
+        jhc_printf_stderr("  allocations: %lu\n", (unsigned long)sc->allocations);
 #endif
         if(SLIST_EMPTY(&sc->blocks) && SLIST_EMPTY(&sc->full_blocks))
                 return;
-        fprintf(stderr, "  blocks:\n");
-        fprintf(stderr, "%20s %9s %9s %s\n", "block", "num_free", "next_free", "status");
+        jhc_printf_stderr("  blocks:\n");
+        jhc_printf_stderr("%20s %9s %9s %s\n", "block", "num_free", "next_free", "status");
         struct s_block *pg;
         SLIST_FOREACH(pg,&sc->blocks,link)
-            fprintf(stderr, "%20p %9i %9i %c\n", pg, pg->u.pi.num_free, pg->u.pi.next_free, 'P');
+            jhc_printf_stderr("%20p %9i %9i %c\n", pg, pg->u.pi.num_free, pg->u.pi.next_free, 'P');
         SLIST_FOREACH(pg,&sc->full_blocks,link)
-            fprintf(stderr, "%20p %9i %9i %c\n", pg, pg->u.pi.num_free, pg->u.pi.next_free, 'F');
+            jhc_printf_stderr("%20p %9i %9i %c\n", pg, pg->u.pi.num_free, pg->u.pi.next_free, 'F');
 }
 
 void hs_perform_gc(void) {
