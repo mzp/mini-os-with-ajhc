@@ -20,6 +20,7 @@ foreign import primitive "const.XS_WATCH_EVENT" xsWatchEvent :: Word32
 foreign import capi "MASK_XENSTORE_IDX" maskXenstoreMask :: Word32 -> IO Word32
 foreign import ccall "xen/io/xs_wire.h hs_get_store_mfn" getStoreMfn :: IO Word64
 foreign import ccall "memcpy_from_ring" memcpyFromRing :: Ptr Word8 -> Ptr Word8 -> Int -> Int -> IO ()
+foreign import ccall "xenbus.h xenbus_read_integer" xenbusReadInteger :: CString -> IO Int
 
 foreign import ccall "hs_set_xenstore_buf" setXenStoreBuf :: Ptr XenstoreDomainInterface -> IO ()
 foreign import ccall "hs_get_xenstore_buf" getXenStoreBuf :: IO (Ptr XenstoreDomainInterface)

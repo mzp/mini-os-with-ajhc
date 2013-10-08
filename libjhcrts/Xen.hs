@@ -11,6 +11,7 @@ foreign import ccall "hypervisor.h force_evtchn_callback" forceEvtchnCallback ::
 type EvtchnPort = Word32
 foreign import ccall "events.h bind_virq" bindVirq :: EvtchnPort -> FunPtr a -> Ptr Word8 -> IO EvtchnPort
 foreign import ccall "events.h bind_evtchn" bindEvtchn :: EvtchnPort -> FunPtr a -> Ptr Word8 -> IO EvtchnPort
+foreign import ccall "evtchn_alloc_unbound" evtchnAllocUnbound ::  Word16 ->  FunPtr (IO ()) -> Ptr Word8 -> Ptr EvtchnPort -> IO Int
 
 virqTimer :: Word32
 virqTimer = 0
@@ -34,7 +35,10 @@ foreign import ccall "hs_local_irq_restore" localIrqRestore :: Word32 -> IO Word
 
 
 foreign import primitive "const.STACK_SIZE_PAGE_ORDER " stackSizePageOrder :: Int
+foreign import ccall "mini-os/mm.h alloc_pages" allocPages :: Int -> IO (Ptr a)
+allocPage = allocPages 0
 foreign import ccall "mini-os/mm.h free_pages" freePages :: Ptr a -> Int -> IO ()
+foreign import capi  "mini-os/mm.h virt_to_mfn" virtToMfn :: Ptr a -> Ptr a
 foreign import ccall "mini-os/xmalloc.h xfree" xfree :: Ptr a -> IO ()
 
 foreign import ccall "hs_bug" bug :: IO ()

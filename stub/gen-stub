@@ -9,10 +9,13 @@ TypeMap =  {
   'uint32_t' => 'Word32',
   'uint64_t' => 'Word64',
   'uint64_t*' => '(Ptr Word64)',
+  'uint64_t[]' => '(Ptr Word64)',
   'int16_t' => 'Int16',
   'int64_t' => 'Int64',
   'int' => 'Int32',
   'int8_t' => 'Int8',
+  'int16_t' => 'Int16',
+  'int32_t' => 'Int32',
   'time_t' => 'Int64',
   'long' => 'Int32',
   'char*' => 'CString',
@@ -76,6 +79,9 @@ def haskell_type(ty)
     }
     t
   end
+rescue => e
+  p [e,ty]
+  raise e
 end
 
 def read(content)
