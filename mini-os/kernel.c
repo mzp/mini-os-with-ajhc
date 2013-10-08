@@ -300,6 +300,7 @@ static void fbfront_drawhoriz(int x1, int x2, int y, uint32_t color)
         fb[x + y*WIDTH] ^= color;
 }
 
+uint8_t* _nit_fbfront(char* x23,void* x24,size_t x25,size_t x26,size_t x27,size_t x28,int x29) ;
 static void fbfront_thread(void *p)
 {
     size_t line_length = WIDTH * (DEPTH / 8);
@@ -312,8 +313,9 @@ static void fbfront_thread(void *p)
     memset(fb, 0, memsize);
     mfns = xmalloc_array(unsigned long, n);
     for (i = 0; i < n; i++)
-        mfns[i] = virtual_to_mfn((char *) fb + i * PAGE_SIZE);
-    fb_dev = init_fbfront(NULL, mfns, WIDTH, HEIGHT, DEPTH, line_length, n);
+      mfns[i] = virtual_to_mfn((char *) fb + i * PAGE_SIZE);
+
+    fb_dev = (void*)_nit_fbfront(NULL,(void*) mfns, WIDTH, HEIGHT, DEPTH, line_length, n);
     xfree(mfns);
     if (!fb_dev) {
         xfree(fb);
