@@ -38,7 +38,7 @@ foreign import primitive "const.STACK_SIZE_PAGE_ORDER " stackSizePageOrder :: In
 foreign import ccall "mini-os/mm.h alloc_pages" allocPages :: Int -> IO (Ptr a)
 allocPage = allocPages 0
 foreign import ccall "mini-os/mm.h free_pages" freePages :: Ptr a -> Int -> IO ()
-foreign import capi  "mini-os/mm.h virt_to_mfn" virtToMfn :: Ptr a -> Ptr a
+foreign import capi  "mini-os/mm.h virt_to_mfn" virtToMfn :: Ptr Word64 -> Word64
 foreign import ccall "mini-os/xmalloc.h xfree" xfree :: Ptr a -> IO ()
 
 foreign import ccall "hs_bug" bug :: IO ()
