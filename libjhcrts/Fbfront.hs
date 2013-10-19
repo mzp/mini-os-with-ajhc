@@ -4,6 +4,7 @@ import Foreign.Ptr
 import Foreign.Storable
 import Data.Word
 import Control.Monad
+import Text.Printf
 import Util
 import FbfrontStub
 import Xenbus
@@ -91,5 +92,9 @@ initFbfront nodename mfns width height depth stride n =
       s <- makeXenfbPage width height (castNum depth) (castNum stride) (n * pageSize)
       setupFbfrontDev dev s width height depth stride (castNum $ n * pageSize)
       copyToPd s mfns (castNum n)
+      xenbusTransaction $ \xbt -> do
+        xenbusPrint xbt name "page-ref" $ show $ virtToMfn $ castPtr s
+        xenbusPrint xbt name "event-channel" . show =<< getFbfrontDevEvtchn dev
+        return True
       return dev
 
