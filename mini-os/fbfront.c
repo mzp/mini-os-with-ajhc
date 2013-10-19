@@ -1,5 +1,5 @@
 /*
- * Frame Buffer + Keyboard driver for Mini-OS. 
+ * Frame Buffer + Keyboard driver for Mini-OS.
  * Samuel Thibault <samuel.thibault@eu.citrix.com>, 2008
  * Based on blkfront.c.
  */
@@ -87,7 +87,7 @@ struct kbdfront_dev *init_kbdfront(char *_nodename, int abs_pointer)
 #endif
 
     snprintf(path, sizeof(path), "%s/backend-id", nodename);
-    dev->dom = xenbus_read_integer(path); 
+    dev->dom = xenbus_read_integer(path);
     evtchn_alloc_unbound(dev->dom, kbdfront_handler, dev, &dev->evtchn);
 
     dev->page = s = (struct xenkbd_page*) alloc_page();
@@ -425,7 +425,7 @@ struct fbfront_dev *init_fbfront(char *_nodename, unsigned long *mfns, int width
 #endif
 
     snprintf(path, sizeof(path), "%s/backend-id", nodename);
-    dev->dom = xenbus_read_integer(path); 
+    dev->dom = xenbus_read_integer(path);
     evtchn_alloc_unbound(dev->dom, fbfront_handler, dev, &dev->evtchn);
 
     dev->page = s = (struct xenfb_page*) alloc_page();
@@ -706,5 +706,21 @@ evtchn_port_t* hs_get_fbfront_dev_evtchn_ptr(struct fbfront_dev* dev) {
 }
 int hs_get_max_pd(struct xenfb_page* s) {
     return sizeof(s->pd) / sizeof(s->pd[0]);
+}
+
+xenbus_transaction_t hs_transaction_start(void) {
+  xenbus_transaction_t xbt;
+  char* err = xenbus_transaction_start(&xbt);
+  if(err) {
+    free(err);
+  }
+  return xbt;
+}
+
+int hs_transaction_end(xenbus_transaction_t xbt, int abort) {
+  int retry;
+  char* err = xenbus_transaction_end(xbt, abort, &retry);
+  if(err) { free(err); }
+  return retry;
 }
 #include "../../stub/stub/fbfront_c_stub.h"

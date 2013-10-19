@@ -39,6 +39,11 @@ foreign export ccall "init_xenbus" initXenbus :: IO ()
 foreign export ccall "hs_xenbus_thread" xenbusThread :: Ptr Word8 -> IO ()
 foreign import unsafe ccall "&hs_xenbus_thread" xenbusThreadFunc :: FunPtr (IO())
 
+type XenbusTransactionT = Word32
+foreign import ccall "hs_transaction_start" transactionStart :: IO XenbusTransactionT
+foreign import ccall "hs_transaction_end" transactionEnd :: XenbusTransactionT -> Int -> IO Int
+foreign import ccall "xenbus.h xenbus_printf" rawXenbusPrint :: XenbusTransactionT -> CString -> CString -> CString -> IO ()
+
 initXenbus :: IO ()
 initXenbus = do printk "init_xenbus called!\n"
                 storeMfn <- getStoreMfn
@@ -115,3 +120,16 @@ thread msg = do buf <- getXenStoreBuf
   where eqToken token w = do t <- peekCString =<< getWatchToken w
                              return $ token == t
 
+xenbusTransaction :: (XenbusTransactionT -> IO Bool) -> IO Bool
+xenbusTransaction f =
+    do xbt <- transactionStart
+       b   <- f xbt
+       let abort = if b then 0 else 1
+       retry <- transactionEnd xbt abort
+       return $ retry /= 0
+
+xenbusPrint xbt nodename path str =
+    withCString nodename $ \nodename ->
+    withCString path     $ \path ->
+    withCString str      $ \str ->
+      rawXenbusPrint xbt nodename path str
